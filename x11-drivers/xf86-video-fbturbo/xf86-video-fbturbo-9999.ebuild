@@ -6,9 +6,9 @@ EAPI=4
 inherit xorg-2 toolchain-funcs versionator
 
 DESCRIPTION="Xorg DDX driver for the devices based on Allwinner A10/A13 SoC"
-SRC_URI="https://github.com/ssvb/${PN}/archive/${PV}.tar.gz -> ${P}.tar.gz"
+EGIT_REPO_URI="git://github.com/ssvb/xf86-video-fbturbo.git"
 
-KEYWORDS="arm amd64 x86"
+KEYWORDS="~arm ~amd64 ~x86"
 IUSE="gles1 gles2"
 
 RDEPEND="x11-base/xorg-server"
@@ -22,3 +22,9 @@ DEPEND="${RDEPEND}
 	x11-proto/xproto
 	x11-libs/libump
 "
+
+src_configure() {
+	XORG_CONFIGURE_OPTIONS=(
+	)
+	xorg-2_src_configure
+}
