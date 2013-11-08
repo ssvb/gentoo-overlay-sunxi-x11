@@ -11,20 +11,35 @@ EGIT_REPO_URI="git://github.com/ssvb/xf86-video-fbturbo.git"
 KEYWORDS="~arm ~amd64 ~x86"
 IUSE="gles1 gles2"
 
-RDEPEND="x11-base/xorg-server"
-DEPEND="${RDEPEND}
+RDEPEND="
+	x11-base/xorg-server
 	gles1? ( x11-drivers/mali-drivers )
 	gles2? ( x11-drivers/mali-drivers )
+"
+
+DEPEND="${RDEPEND}
 	x11-proto/fontsproto
 	x11-proto/randrproto
 	x11-proto/renderproto
 	x11-proto/videoproto
 	x11-proto/xproto
-	x11-libs/libump
+	x11-libs/libdri2
 "
 
 src_configure() {
 	XORG_CONFIGURE_OPTIONS=(
 	)
 	xorg-2_src_configure
+}
+
+pkg_postinst() {
+elog 'QuckiStart /etc/X11/xorg.conf'
+elog ''
+elog 'Section "Device"'
+elog '        Identifier      "Allwinner A10/A13 FBDEV"'
+elog '        Driver          "fbturbo"'
+elog '        Option          "fbdev" "/dev/fb0"'
+elog ''
+elog '        Option          "SwapbuffersWait" "true"'
+elog 'EndSection'
 }
