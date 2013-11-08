@@ -13,8 +13,8 @@ IUSE="gles1 gles2"
 
 RDEPEND="
 	x11-base/xorg-server
-	gles1? ( x11-drivers/mali-drivers )
-	gles2? ( x11-drivers/mali-drivers )
+	gles1? ( media-libs/mali-drivers )
+	gles2? ( media-libs/mali-drivers )
 "
 
 DEPEND="${RDEPEND}
