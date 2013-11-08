@@ -1,0 +1,5 @@
+KERNEL=="mali",                 GROUP="video"
+KERNEL=="ump",                  GROUP="video"
+KERNEL=="g2d",                  GROUP="video"
+KERNEL=="disp",                 GROUP="video"
+KERNEL=="cedar_dev",            GROUP="video"
