@@ -1,22 +1,50 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
-# Distributed under the terms of the GNU Public License v2
+# Copyright 1999-2012 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header:  Exp $
 
-EAPI="4"
-inherit xorg-2 toolchain-funcs versionator
+EAPI=5
+inherit git-2 eutils xorg-2
 
-XORG_DRI="always"
-XORG_EAUTORECONF="yes"
-
-DESCRIPTION="X.Org driver for ARM devices"
-EGIT_REPO_URI="git://git.linaro.org/arm/xorg/driver/xf86-video-armsoc.git"
-
+DESCRIPTION="Generic VESA video driver"
 KEYWORDS="~arm"
+IUSE="-linaro"
 
-RDEPEND=">=x11-base/xorg-server-1.9"
+RDEPEND=">=x11-base/xorg-server-1.10.99"
 DEPEND="${RDEPEND}"
 
-src_unpack() {
-        xorg-2_src_unpack
-        mkdir -p "${S}"/m4
+if ! use linaro; then
+	EGIT_REPO_URI="https://chromium.googlesource.com/chromiumos/third_party/${PN}.git"
+else
+#	EGIT_REPO_URI="git://git.linaro.org/arm/xorg/driver/${PN}.git"
+	EGIT_REPO_URI="git://anongit.freedesktop.org/xorg/driver/${PN}"
+fi
+
+src_prepare() {
+	use linaro || epatch "${FILESDIR}/0001-compat-for-newer-xorg.patch"
+
+	xorg-2_src_prepare
 }
 
+src_configure() {
+	if use linaro; then
+		econf --with-drmmode=exynos
+	else
+		xorg-2_src_configure
+	fi
+}
+
+src_compile() {
+	if use linaro; then
+		emake
+	else
+		xorg-2_src_compile
+	fi
+}
+
+src_install() {
+	if use linaro; then
+		emake DESTDIR="${D}" install
+	else
+		xorg-2_src_install
+	fi
+}
