@@ -1,0 +1,204 @@
+diff --git a/src/armsoc_dri2.c b/src/armsoc_dri2.c
+index 793ea10..6c0fe14 100644
+--- a/src/armsoc_dri2.c
++++ b/src/armsoc_dri2.c
+@@ -164,7 +164,7 @@ ARMSOCDRI2CreateBuffer(DrawablePtr pDraw, unsigned int attachment,
+ {
+ 	ScreenPtr pScreen = pDraw->pScreen;
+ 	ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+-	struct ARMSOCDRI2BufferRec *buf;
++	struct ARMSOCDRI2BufferRec *buf = calloc(1, sizeof(*buf));
+ 	struct ARMSOCRec *pARMSOC = ARMSOCPTR(pScrn);
+ 	PixmapPtr pPixmap = NULL;
+ 	struct armsoc_bo *bo;
+@@ -173,7 +173,6 @@ ARMSOCDRI2CreateBuffer(DrawablePtr pDraw, unsigned int attachment,
+ 	DEBUG_MSG("pDraw=%p, attachment=%d, format=%08x",
+ 			pDraw, attachment, format);
+ 
+-	buf = calloc(1, sizeof *buf);
+ 	if (!buf) {
+ 		ERROR_MSG("Couldn't allocate internal buffer structure");
+ 		return NULL;
+@@ -603,14 +602,13 @@ ARMSOCDRI2ScheduleSwap(ClientPtr client, DrawablePtr pDraw,
+ 	struct ARMSOCRec *pARMSOC = ARMSOCPTR(pScrn);
+ 	struct ARMSOCDRI2BufferRec *src = ARMSOCBUF(pSrcBuffer);
+ 	struct ARMSOCDRI2BufferRec *dst = ARMSOCBUF(pDstBuffer);
+-	struct ARMSOCDRISwapCmd *cmd;
++	struct ARMSOCDRISwapCmd *cmd = calloc(1, sizeof(*cmd));
+ 	struct armsoc_bo *src_bo, *dst_bo;
+ 	int src_fb_id, dst_fb_id;
+ 	int new_canflip, ret, do_flip;
+ 	RegionRec region;
+ 	PixmapPtr pDstPixmap = draw2pix(dri2draw(pDraw, pDstBuffer));
+ 
+-	cmd = calloc(1, sizeof(*cmd));
+ 	if (!cmd)
+ 		return FALSE;
+ 
+diff --git a/src/armsoc_driver.c b/src/armsoc_driver.c
+index 590352e..329e11d 100644
+--- a/src/armsoc_driver.c
++++ b/src/armsoc_driver.c
+@@ -663,7 +663,7 @@ ARMSOCProbe(DriverPtr drv, int flags)
+ 			 * driverPrivate field.
+ 			 */
+ 			pScrn->driverPrivate =
+-					calloc(1, sizeof *pARMSOC);
++					calloc(1, sizeof(struct ARMSOCRec));
+ 			if (!pScrn->driverPrivate)
+ 				return FALSE;
+ 
+@@ -823,7 +823,7 @@ ARMSOCPreInit(ScrnInfoPtr pScrn, int flags)
+ 	 * Process the "xorg.conf" file options:
+ 	 */
+ 	xf86CollectOptions(pScrn, NULL);
+-	pARMSOC->pOptionInfo = malloc(sizeof(ARMSOCOptions));
++	pARMSOC->pOptionInfo = calloc(1, sizeof(ARMSOCOptions));
+ 	if (!pARMSOC->pOptionInfo)
+ 		goto fail2;
+ 
+diff --git a/src/armsoc_dumb.c b/src/armsoc_dumb.c
+index 33f9b44..972327f 100644
+--- a/src/armsoc_dumb.c
++++ b/src/armsoc_dumb.c
+@@ -70,7 +70,7 @@ struct armsoc_device *armsoc_device_new(int fd,
+ 			int (*create_custom_gem)(int fd,
+ 				struct armsoc_create_gem *create_gem))
+ {
+-	struct armsoc_device *new_dev = calloc(1, sizeof *new_dev);
++	struct armsoc_device *new_dev = malloc(sizeof(*new_dev));
+ 	if (!new_dev)
+ 		return NULL;
+ 
+diff --git a/src/armsoc_exa.c b/src/armsoc_exa.c
+index 79c8970..57e2a6d 100644
+--- a/src/armsoc_exa.c
++++ b/src/armsoc_exa.c
+@@ -78,7 +78,8 @@ ARMSOCCreatePixmap2(ScreenPtr pScreen, int width, int height,
+ 		int depth, int usage_hint, int bitsPerPixel,
+ 		int *new_fb_pitch)
+ {
+-	struct ARMSOCPixmapPrivRec *priv = calloc(1, sizeof *priv);
++	struct ARMSOCPixmapPrivRec *priv =
++				calloc(sizeof(struct ARMSOCPixmapPrivRec), 1);
+ 	ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
+ 	struct ARMSOCRec *pARMSOC = ARMSOCPTR(pScrn);
+ 	enum armsoc_buf_type buf_type = ARMSOC_BO_NON_SCANOUT;
+diff --git a/src/armsoc_exa_null.c b/src/armsoc_exa_null.c
+index 17f5dd0..782694a 100644
+--- a/src/armsoc_exa_null.c
++++ b/src/armsoc_exa_null.c
+@@ -107,21 +107,20 @@ FreeScreen(FREE_SCREEN_ARGS_DECL)
+ struct ARMSOCEXARec *
+ InitNullEXA(ScreenPtr pScreen, ScrnInfoPtr pScrn, int fd)
+ {
+-	struct ARMSOCNullEXARec *null_exa;
++	struct ARMSOCNullEXARec *null_exa = calloc(sizeof(*null_exa), 1);
+ 	struct ARMSOCEXARec *armsoc_exa;
+ 	ExaDriverPtr exa;
+ 
+ 	INFO_MSG("Soft EXA mode");
+ 
+-	null_exa = calloc(1, sizeof(*null_exa));
+ 	if (!null_exa)
+-		goto out;
++		return NULL;
+ 
+ 	armsoc_exa = (struct ARMSOCEXARec *)null_exa;
+ 
+ 	exa = exaDriverAlloc();
+ 	if (!exa)
+-		goto free_null_exa;
++		goto fail;
+ 
+ 	null_exa->exa = exa;
+ 
+@@ -153,7 +152,7 @@ InitNullEXA(ScreenPtr pScreen, ScrnInfoPtr pScrn, int fd)
+ 
+ 	if (!exaDriverInit(pScreen, exa)) {
+ 		ERROR_MSG("exaDriverInit failed");
+-		goto free_exa;
++		goto fail;
+ 	}
+ 
+ 	armsoc_exa->CloseScreen = CloseScreen;
+@@ -161,11 +160,13 @@ InitNullEXA(ScreenPtr pScreen, ScrnInfoPtr pScrn, int fd)
+ 
+ 	return armsoc_exa;
+ 
+-free_exa:
+-	free(exa);
+-free_null_exa:
+-	free(null_exa);
+-out:
++fail:
++	if (exa)
++		free(exa);
++
++	if (null_exa)
++		free(null_exa);
++
+ 	return NULL;
+ }
+ 
+diff --git a/src/drmmode_display.c b/src/drmmode_display.c
+index b9e59f1..901f846 100644
+--- a/src/drmmode_display.c
++++ b/src/drmmode_display.c
+@@ -267,7 +267,7 @@ drmmode_set_mode_major(xf86CrtcPtr crtc, DisplayModePtr mode,
+ 	crtc->y = y;
+ 	crtc->rotation = rotation;
+ 
+-	output_ids = calloc(xf86_config->num_output, sizeof *output_ids);
++	output_ids = calloc(sizeof(uint32_t), xf86_config->num_output);
+ 	if (!output_ids) {
+ 		ERROR_MSG(
+ 				"memory allocation failed in drmmode_set_mode_major()");
+@@ -845,7 +845,7 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, struct drmmode_rec *drmmode, int num)
+ 	if (crtc == NULL)
+ 		return;
+ 
+-	drmmode_crtc = xnfcalloc(1, sizeof *drmmode_crtc);
++	drmmode_crtc = xnfcalloc(sizeof(struct drmmode_crtc_private_rec), 1);
+ 	drmmode_crtc->crtc_id = drmmode->mode_res->crtcs[num];
+ 	drmmode_crtc->drmmode = drmmode;
+ 	drmmode_crtc->last_good_mode = NULL;
+@@ -1027,8 +1027,9 @@ drmmode_output_create_resources(xf86OutputPtr output)
+ 	uint32_t value;
+ 	int i, j, err;
+ 
+-	drmmode_output->props = calloc(connector->count_props,
+-					sizeof *connector->props);
++	drmmode_output->props =
++		calloc(connector->count_props,
++				sizeof(struct drmmode_prop_rec));
+ 	if (!drmmode_output->props)
+ 		return;
+ 
+@@ -1056,7 +1057,7 @@ drmmode_output_create_resources(xf86OutputPtr output)
+ 			INT32 range[2];
+ 
+ 			p->num_atoms = 1;
+-			p->atoms = calloc(p->num_atoms, sizeof *p->atoms);
++			p->atoms = calloc(p->num_atoms, sizeof(Atom));
+ 			if (!p->atoms)
+ 				continue;
+ 			p->atoms[0] = MakeAtom(drmmode_prop->name,
+@@ -1088,7 +1089,7 @@ drmmode_output_create_resources(xf86OutputPtr output)
+ 
+ 		} else if (drmmode_prop->flags & DRM_MODE_PROP_ENUM) {
+ 			p->num_atoms = drmmode_prop->count_enums + 1;
+-			p->atoms = calloc(p->num_atoms, sizeof *p->atoms);
++			p->atoms = calloc(p->num_atoms, sizeof(Atom));
+ 			if (!p->atoms)
+ 				continue;
+ 			p->atoms[0] = MakeAtom(drmmode_prop->name,
+@@ -1317,7 +1318,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, struct drmmode_rec *drmmode, int num)
+ 	if (!output)
+ 		goto free_encoders_exit;
+ 
+-	drmmode_output = calloc(1, sizeof *drmmode_output);
++	drmmode_output = calloc(sizeof(struct drmmode_output_priv), 1);
+ 	if (!drmmode_output) {
+ 		xf86OutputDestroy(output);
+ 		goto free_encoders_exit;
