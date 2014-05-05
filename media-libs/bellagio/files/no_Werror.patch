@@ -1,0 +1,12 @@
+--- configure.ac.orig   2014-05-05 14:31:24.710002225 +0300
++++ configure.ac        2014-05-05 14:33:00.440002271 +0300
+@@ -5,7 +5,7 @@
+ AC_PREREQ([2.59])
+ 
+ AC_CONFIG_HEADERS([config.h])
+-CFLAGS="${CFLAGS} -Wall -Werror"
++CFLAGS="${CFLAGS} -Wall"
+ 
+ ################################################################################
+ # Set the shared versioning info, according to section 6.3 of the libtool info #
+
